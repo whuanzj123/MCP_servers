@@ -6,7 +6,7 @@ import json
 from starlette.applications import Starlette
 from starlette.middleware.cors import CORSMiddleware
 from starlette.routing import Mount
-
+import shutil
 # Set the base directory to restrict file operations
 BASE_DIR = r"C:/Users/Administrator/Desktop/TestField"
 
@@ -41,6 +41,45 @@ def validate_path(path):
     
     return full_path
 
+@mcp.tool()
+def copy_file(source_path: str, destination_path: str) -> str:
+    """Copy a file from one location to another.
+    
+    Args:
+        source_path: The source file path relative to the base directory
+        destination_path: The destination path relative to the base directory
+    """
+    try:
+        # Validate and get the full paths
+        source_full_path = validate_path(source_path)
+        destination_full_path = validate_path(destination_path)
+        
+        # Check if the source file exists
+        if not os.path.exists(source_full_path):
+            return f"Error: Source file '{source_path}' does not exist"
+        
+        # Check if the source is a file
+        if not os.path.isfile(source_full_path):
+            return f"Error: Source '{source_path}' is not a file"
+            
+        # Ensure the destination directory exists
+        destination_dir = os.path.dirname(destination_full_path)
+        os.makedirs(destination_dir, exist_ok=True)
+        
+        # Check if destination already exists
+        if os.path.exists(destination_full_path):
+            return f"Error: Destination '{destination_path}' already exists"
+        
+        # Copy the file with metadata (timestamps, permissions)
+        shutil.copy2(source_full_path, destination_full_path)
+        
+        return f"File copied successfully from '{source_path}' to '{destination_path}'"
+        
+    except ValueError as e:
+        return f"Error: {str(e)}"
+    except Exception as e:
+        return f"Error: Failed to copy file: {str(e)}"
+    
 @mcp.tool()
 def list_files(directory: str = "") -> str:
     """List files and directories in the specified directory.
