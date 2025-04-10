@@ -19,7 +19,7 @@ def run_git_command(command, args=None, subpath=None):
     Args:
         command: The git command to run
         args: Command arguments
-        subpath: Optional subfolder path relative to the main repository
+        subpath: Optional subfolder path relative to repository root
     """
     # Start with the base git command
     cmd = ["git"]
@@ -165,6 +165,34 @@ def git_diff(files: str = None, subpath: str = None) -> str:
     return run_git_command("diff", files, subpath=subpath)
 
 @mcp.tool()
+def git_pull(remote: str = "origin", branch: str = "main", subpath: str = None) -> str:
+    """Pull changes from a remote repository.
+    
+    Args:
+        remote: The remote to pull from (default: origin)
+        branch: The branch to pull (default: main)
+        subpath: Optional subfolder path relative to repository root
+    """
+    # Basic sanitization
+    if re.search(r'[;&|]', remote) or re.search(r'[;&|]', branch):
+        return "Error: Invalid remote or branch name"
+    return run_git_command("pull", [remote, branch], subpath=subpath)
+
+@mcp.tool()
+def git_push(remote: str = "origin", branch: str = "main", subpath: str = None) -> str:
+    """Push changes to a remote repository.
+    
+    Args:
+        remote: The remote to push to (default: origin)
+        branch: The branch to push (default: main)
+        subpath: Optional subfolder path relative to repository root
+    """
+    # Basic sanitization
+    if re.search(r'[;&|]', remote) or re.search(r'[;&|]', branch):
+        return "Error: Invalid remote or branch name"
+    return run_git_command("push", [remote, branch], subpath=subpath)
+
+@mcp.tool()
 def git_execute(command: str, subpath: str = None) -> str:
     """Execute a git command directly with arguments.
     
@@ -187,7 +215,7 @@ def git_execute(command: str, subpath: str = None) -> str:
     allowed_commands = [
         'version', 'status', 'log', 'add', 'commit', 'branch', 
         'checkout', 'init', 'diff', 'show', 'remote', 'fetch', 
-        'config', 'tag', 'ls-files'
+        'config', 'tag', 'ls-files', 'pull', 'push'
     ]
     
     if git_cmd not in allowed_commands:
