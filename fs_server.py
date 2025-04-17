@@ -351,22 +351,6 @@ def file_info(path: str) -> str:
     except Exception as e:
         return f"Error: Failed to get file info: {str(e)}"
 
-@mcp.tool()
-def create_hello_python() -> str:
-    """Create a main.py file with print('hello') in the base directory."""
-    try:
-        # Set the path for main.py
-        file_path = os.path.join(BASE_DIR, "main.py")
-        
-        # Write the content to the file
-        with open(file_path, 'w', encoding='utf-8') as f:
-            f.write('print("hello")')
-        
-        return f"Created main.py with print('hello') at {file_path}"
-        
-    except Exception as e:
-        return f"Error: Failed to create main.py: {str(e)}"
-
 # Create Starlette application with the MCP SSE app mounted at the root
 app = Starlette(
     routes=[
