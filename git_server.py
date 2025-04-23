@@ -6,7 +6,7 @@ from starlette.applications import Starlette
 from starlette.middleware.cors import CORSMiddleware
 from starlette.routing import Mount
 import sys
-
+import shlex  # Import the shell lexical analyzer
 # Set the fixed Git repository path - locked to your specified repo
 GIT_REPO_PATH = r"C:/Users/Administrator/Desktop/TestField"
 
@@ -74,37 +74,35 @@ def run_git_command(command, args=None, subpath=None):
     except Exception as e:
         return f"Failed to execute command: {str(e)}"
 
-
 @mcp.tool()
 def git_execute(command: str, subpath: str = None) -> str:
-    """Execute a git command directly with arguments.
-    
-    Args:
-        command: Git command and arguments (e.g., "log -n5", "status -s")
-        subpath: Optional subfolder path relative to repository root
-    """
+    """Execute a git command directly with arguments."""
     # Sanitization for the general command
     if re.search(r'[;&|`$]', command) or '..' in command:
         return "Error: Potentially unsafe command detected"
     
-    parts = command.split()
-    if not parts:
-        return "Error: Empty command"
-    
-    git_cmd = parts[0]
-    args = parts[1:] if len(parts) > 1 else []
-    
-    # Whitelist of allowed git commands
-    allowed_commands = [
-        'version', 'status', 'log', 'add', 'commit', 'branch', 
-        'checkout', 'init', 'diff', 'show', 'remote', 'fetch', 
-        'config', 'tag', 'ls-files', 'pull', 'push'
-    ]
-    
-    if git_cmd not in allowed_commands:
-        return f"Error: Command '{git_cmd}' is not allowed"
-    
-    return run_git_command(git_cmd, args, subpath=subpath)
+    try:
+        # Use shlex.split to properly handle quoted arguments
+        parts = shlex.split(command)
+        if not parts:
+            return "Error: Empty command"
+        
+        git_cmd = parts[0]
+        args = parts[1:] if len(parts) > 1 else []
+        
+        # Whitelist of allowed git commands
+        allowed_commands = [
+            'version', 'status', 'log', 'add', 'commit', 'branch', 
+            'checkout', 'init', 'diff', 'show', 'remote', 'fetch', 
+            'config', 'tag', 'ls-files', 'pull', 'push'
+        ]
+        
+        if git_cmd not in allowed_commands:
+            return f"Error: Command '{git_cmd}' is not allowed"
+        
+        return run_git_command(git_cmd, args, subpath=subpath)
+    except ValueError as e:
+        return f"Error parsing command: {str(e)}"
 
 
 # Create Starlette application with the MCP SSE app mounted at the root
