@@ -8,7 +8,7 @@ from starlette.routing import Mount
 import sys
 
 # Set the fixed Git repository path - locked to your specified repo
-GIT_REPO_PATH = r"C:/Users/Administrator/Desktop/TestField"
+GIT_REPO_PATH = r"/Users/huanwei/Desktop/GitHub"
 
 # Create an MCP server
 mcp = FastMCP("GitTools")

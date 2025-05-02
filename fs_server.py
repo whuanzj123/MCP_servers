@@ -8,7 +8,7 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.routing import Mount
 import shutil
 # Set the base directory to restrict file operations
-BASE_DIR = r"C:/Users/Administrator/Desktop/TestField"
+BASE_DIR = r"/Users/huanwei/Desktop/GitHub"
 
 # Ensure base directory exists
 os.makedirs(BASE_DIR, exist_ok=True)

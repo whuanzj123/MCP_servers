@@ -9,8 +9,8 @@ from starlette.routing import Mount
 import sys
 
 # Hardcoded paths for security (restrict access to only these directories)
-CONFIG_PATH = r"C:\Users\Administrator\AppData\Roaming\Claude\claude_desktop_config.json"
-LOGS_DIR = r"C:\Users\Administrator\AppData\Roaming\Claude\logs"
+CONFIG_PATH = "/Users/huanwei/Library/Application Support/Claude/claude_desktop_config.json"
+LOGS_DIR = "/Users/huanwei/Library/Logs/Claude"
 
 # Create an MCP server
 mcp = FastMCP("ClaudeConfigTools")
