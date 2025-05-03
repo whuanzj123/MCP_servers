@@ -185,36 +185,6 @@ def write_file(path: str, content: str) -> str:
     except Exception as e:
         return f"Error: Failed to write file: {str(e)}"
 
-# @mcp.tool()
-# def append_file(path: str, content: str) -> str:
-#     """Append content to an existing file.
-    
-#     Args:
-#         path: The file path relative to the base directory
-#         content: The content to append to the file
-#     """
-#     try:
-#         # Validate and get the full path
-#         full_path = validate_path(path)
-        
-#         # Check if the file exists
-#         file_exists = os.path.exists(full_path) and os.path.isfile(full_path)
-        
-#         # Ensure the directory exists
-#         directory = os.path.dirname(full_path)
-#         os.makedirs(directory, exist_ok=True)
-        
-#         # Append the content to the file
-#         with open(full_path, 'a', encoding='utf-8') as f:
-#             f.write(content)
-        
-#         action = "appended to" if file_exists else "created and written to"
-#         return f"File '{path}' has been {action} successfully"
-        
-#     except ValueError as e:
-#         return f"Error: {str(e)}"
-#     except Exception as e:
-#         return f"Error: Failed to append to file: {str(e)}"
 
 @mcp.tool()
 def delete_file(path: str) -> str:
