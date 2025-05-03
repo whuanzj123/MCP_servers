@@ -2,13 +2,24 @@ from mcp.server.fastmcp import FastMCP
 import subprocess
 import os
 import re
+import platform
+import sys
+import shlex
 from starlette.applications import Starlette
 from starlette.middleware.cors import CORSMiddleware
 from starlette.routing import Mount
-import sys
-import shlex  # Import the shell lexical analyzer
-# Set the fixed Git repository path - locked to your specified repo
-GIT_REPO_PATH = r"C:/Users/Administrator/Desktop/TestField"
+
+# Determine repository path based on OS
+system = platform.system()
+if system == "Windows":
+    GIT_REPO_PATH = os.path.expanduser("~/Desktop/TestField")
+elif system == "Darwin":  # macOS
+    GIT_REPO_PATH = os.path.expanduser("~/Desktop/TestField")
+else:  # Linux or other
+    GIT_REPO_PATH = os.path.expanduser("~/TestField")
+
+# Ensure the repository path exists
+os.makedirs(GIT_REPO_PATH, exist_ok=True)
 
 # Create an MCP server
 mcp = FastMCP("GitTools")
@@ -76,7 +87,12 @@ def run_git_command(command, args=None, subpath=None):
 
 @mcp.tool()
 def git_execute(command: str, subpath: str = None) -> str:
-    """Execute a git command directly with arguments."""
+    """Execute a git command directly with arguments.
+    
+    Args:
+        command: Git command to execute (e.g., "status", "log -n 5")
+        subpath: Optional subfolder path relative to repository root
+    """
     # Sanitization for the general command
     if re.search(r'[;&|`$]', command) or '..' in command:
         return "Error: Potentially unsafe command detected"
@@ -104,7 +120,6 @@ def git_execute(command: str, subpath: str = None) -> str:
     except ValueError as e:
         return f"Error parsing command: {str(e)}"
 
-
 # Create Starlette application with the MCP SSE app mounted at the root
 app = Starlette(
     routes=[
@@ -127,22 +142,6 @@ if __name__ == "__main__":
         # Web mode (SSE) - for Chainlit
         import uvicorn
         
-        # Create Starlette application
-        app = Starlette(
-            routes=[
-                Mount('/', app=mcp.sse_app()),
-            ]
-        )
-        
-        # Add CORS middleware
-        app.add_middleware(
-            CORSMiddleware,
-            allow_origins=["*"],
-            allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
-        )
-        
         # Get port from arguments or environment or default
         port = int(os.environ.get("MCP_PORT", 8001))
         if len(sys.argv) > 2:
@@ -155,5 +154,5 @@ if __name__ == "__main__":
         uvicorn.run(app, host="127.0.0.1", port=port)
     else:
         # STDIO mode - for Claude Desktop
-        print("Starting STDIO MCP server")
+        print(f"Starting STDIO MCP server with Git repository at: {GIT_REPO_PATH}")
         mcp.run(transport='stdio')
