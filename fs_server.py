@@ -3,14 +3,22 @@ import os
 import sys
 import datetime
 import json
+import platform
 from starlette.applications import Starlette
 from starlette.middleware.cors import CORSMiddleware
 from starlette.routing import Mount
 import shutil
-# Set the base directory to restrict file operations
-BASE_DIR = r"C:/Users/Administrator/Desktop/TestField"
 
-# Ensure base directory exists
+# Determine base directory based on OS
+system = platform.system()
+if system == "Windows":
+    BASE_DIR = os.path.expanduser("~/Desktop/TestField")
+elif system == "Darwin":  # macOS
+    BASE_DIR = os.path.expanduser("~/Desktop/TestField")
+else:  # Linux or other
+    BASE_DIR = os.path.expanduser("~/TestField")
+
+# Create the base directory if it doesn't exist
 os.makedirs(BASE_DIR, exist_ok=True)
 
 # Create an MCP server
@@ -265,7 +273,6 @@ def delete_directory(path: str, recursive: bool = False) -> str:
         
         # Delete the directory
         if recursive:
-            import shutil
             shutil.rmtree(full_path)
         else:
             os.rmdir(full_path)
@@ -343,22 +350,6 @@ if __name__ == "__main__":
         # Web mode (SSE) - for Chainlit
         import uvicorn
         
-        # Create Starlette application
-        app = Starlette(
-            routes=[
-                Mount('/', app=mcp.sse_app()),
-            ]
-        )
-        
-        # Add CORS middleware
-        app.add_middleware(
-            CORSMiddleware,
-            allow_origins=["*"],
-            allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
-        )
-        
         # Get port from arguments or environment or default
         port = int(os.environ.get("MCP_PORT", 8001))
         if len(sys.argv) > 2:
@@ -371,5 +362,5 @@ if __name__ == "__main__":
         uvicorn.run(app, host="127.0.0.1", port=port)
     else:
         # STDIO mode - for Claude Desktop
-        print("Starting STDIO MCP server")
+        print(f"Starting STDIO MCP server with base directory: {BASE_DIR}")
         mcp.run(transport='stdio')
