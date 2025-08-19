@@ -2,24 +2,13 @@ from mcp.server.fastmcp import FastMCP
 import subprocess
 import os
 import re
-import platform
-import sys
-import shlex
 from starlette.applications import Starlette
 from starlette.middleware.cors import CORSMiddleware
 from starlette.routing import Mount
+import sys
 
-# Determine repository path based on OS
-system = platform.system()
-if system == "Windows":
-    GIT_REPO_PATH = os.path.expanduser("~/Desktop/TestField")
-elif system == "Darwin":  # macOS
-    GIT_REPO_PATH = os.path.expanduser("~/Desktop/TestField")
-else:  # Linux or other
-    GIT_REPO_PATH = os.path.expanduser("~/TestField")
-
-# Ensure the repository path exists
-os.makedirs(GIT_REPO_PATH, exist_ok=True)
+# Set the fixed Git repository path - locked to your specified repo
+GIT_REPO_PATH = r"C:/Users/Administrator/Desktop/TestField"
 
 # Create an MCP server
 mcp = FastMCP("GitTools")
@@ -86,39 +75,168 @@ def run_git_command(command, args=None, subpath=None):
         return f"Failed to execute command: {str(e)}"
 
 @mcp.tool()
+def git_version() -> str:
+    """Get the installed Git version."""
+    return run_git_command("version")
+
+@mcp.tool()
+def git_status(subpath: str = None) -> str:
+    """Show the working tree status.
+    
+    Args:
+        subpath: Optional subfolder path relative to repository root
+    """
+    return run_git_command("status", subpath=subpath)
+
+@mcp.tool()
+def git_log(n: int = 10, subpath: str = None) -> str:
+    """Show commit logs.
+    
+    Args:
+        n: Number of commits to show (default: 10)
+        subpath: Optional subfolder path relative to repository root
+    """
+    return run_git_command("log", [f"-n{n}", "--oneline"], subpath=subpath)
+
+@mcp.tool()
+def git_add(files: str, subpath: str = None) -> str:
+    """Add file contents to the index.
+    
+    Args:
+        files: File pattern to add (e.g., ".", "*.py", "file.txt")
+        subpath: Optional subfolder path relative to repository root
+    """
+    # Basic sanitization to prevent command injection
+    if re.search(r'[;&|]', files):
+        return "Error: Invalid file pattern"
+    return run_git_command("add", files, subpath=subpath)
+
+@mcp.tool()
+def git_commit(message: str, subpath: str = None) -> str:
+    """Record changes to the repository.
+    
+    Args:
+        message: Commit message
+        subpath: Optional subfolder path relative to repository root
+    """
+    # Simple sanitization
+    message = message.replace('"', '\\"')
+    return run_git_command("commit", ["-m", message], subpath=subpath)
+
+@mcp.tool()
+def git_branch(subpath: str = None) -> str:
+    """List, create, or delete branches.
+    
+    Args:
+        subpath: Optional subfolder path relative to repository root
+    """
+    return run_git_command("branch", subpath=subpath)
+
+@mcp.tool()
+def git_checkout(branch_or_file: str, subpath: str = None) -> str:
+    """Switch branches or restore working tree files.
+    
+    Args:
+        branch_or_file: The branch to checkout or file to restore
+        subpath: Optional subfolder path relative to repository root
+    """
+    # Basic sanitization to prevent command injection
+    if re.search(r'[;&|]', branch_or_file):
+        return "Error: Invalid branch or file name"
+    return run_git_command("checkout", branch_or_file, subpath=subpath)
+
+@mcp.tool()
+def git_ls_files(subpath: str = None) -> str:
+    """Show information about files in the index and the working tree.
+    
+    Args:
+        subpath: Optional subfolder path relative to repository root
+    """
+    return run_git_command("ls-files", subpath=subpath)
+
+@mcp.tool()
+def git_diff(files: str = None, subpath: str = None) -> str:
+    """Show changes between commits, commit and working tree, etc.
+    
+    Args:
+        files: Optional specific files to diff
+        subpath: Optional subfolder path relative to repository root
+    """
+    return run_git_command("diff", files, subpath=subpath)
+
+@mcp.tool()
+def git_pull(remote: str = "origin", branch: str = "main", subpath: str = None) -> str:
+    """Pull changes from a remote repository.
+    
+    Args:
+        remote: The remote to pull from (default: origin)
+        branch: The branch to pull (default: main)
+        subpath: Optional subfolder path relative to repository root
+    """
+    # Basic sanitization
+    if re.search(r'[;&|]', remote) or re.search(r'[;&|]', branch):
+        return "Error: Invalid remote or branch name"
+    return run_git_command("pull", [remote, branch], subpath=subpath)
+
+@mcp.tool()
+def git_push(remote: str = "origin", branch: str = "main", subpath: str = None) -> str:
+    """Push changes to a remote repository.
+    
+    Args:
+        remote: The remote to push to (default: origin)
+        branch: The branch to push (default: main)
+        subpath: Optional subfolder path relative to repository root
+    """
+    # Basic sanitization
+    if re.search(r'[;&|]', remote) or re.search(r'[;&|]', branch):
+        return "Error: Invalid remote or branch name"
+    return run_git_command("push", [remote, branch], subpath=subpath)
+
+@mcp.tool()
 def git_execute(command: str, subpath: str = None) -> str:
     """Execute a git command directly with arguments.
     
     Args:
-        command: Git command to execute (e.g., "status", "log -n 5")
+        command: Git command and arguments (e.g., "log -n5", "status -s")
         subpath: Optional subfolder path relative to repository root
     """
     # Sanitization for the general command
     if re.search(r'[;&|`$]', command) or '..' in command:
         return "Error: Potentially unsafe command detected"
     
+    parts = command.split()
+    if not parts:
+        return "Error: Empty command"
+    
+    git_cmd = parts[0]
+    args = parts[1:] if len(parts) > 1 else []
+    
+    # Whitelist of allowed git commands
+    allowed_commands = [
+        'version', 'status', 'log', 'add', 'commit', 'branch', 
+        'checkout', 'init', 'diff', 'show', 'remote', 'fetch', 
+        'config', 'tag', 'ls-files', 'pull', 'push'
+    ]
+    
+    if git_cmd not in allowed_commands:
+        return f"Error: Command '{git_cmd}' is not allowed"
+    
+    return run_git_command(git_cmd, args, subpath=subpath)
+
+@mcp.resource("git://subfolders")
+def list_subfolders() -> str:
+    """List all subfolders in the Git repository."""
     try:
-        # Use shlex.split to properly handle quoted arguments
-        parts = shlex.split(command)
-        if not parts:
-            return "Error: Empty command"
+        result = []
+        for root, dirs, files in os.walk(GIT_REPO_PATH):
+            # Get relative path from the repository root
+            rel_path = os.path.relpath(root, GIT_REPO_PATH)
+            if rel_path != '.':  # Skip the repository root
+                result.append(rel_path)
         
-        git_cmd = parts[0]
-        args = parts[1:] if len(parts) > 1 else []
-        
-        # Whitelist of allowed git commands
-        allowed_commands = [
-            'version', 'status', 'log', 'add', 'commit', 'branch', 
-            'checkout', 'init', 'diff', 'show', 'remote', 'fetch', 
-            'config', 'tag', 'ls-files', 'pull', 'push'
-        ]
-        
-        if git_cmd not in allowed_commands:
-            return f"Error: Command '{git_cmd}' is not allowed"
-        
-        return run_git_command(git_cmd, args, subpath=subpath)
-    except ValueError as e:
-        return f"Error parsing command: {str(e)}"
+        return '\n'.join(result) if result else "No subfolders found."
+    except Exception as e:
+        return f"Error listing subfolders: {str(e)}"
 
 # Create Starlette application with the MCP SSE app mounted at the root
 app = Starlette(
@@ -142,6 +260,22 @@ if __name__ == "__main__":
         # Web mode (SSE) - for Chainlit
         import uvicorn
         
+        # Create Starlette application
+        app = Starlette(
+            routes=[
+                Mount('/', app=mcp.sse_app()),
+            ]
+        )
+        
+        # Add CORS middleware
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+        
         # Get port from arguments or environment or default
         port = int(os.environ.get("MCP_PORT", 8001))
         if len(sys.argv) > 2:
@@ -154,5 +288,5 @@ if __name__ == "__main__":
         uvicorn.run(app, host="127.0.0.1", port=port)
     else:
         # STDIO mode - for Claude Desktop
-        print(f"Starting STDIO MCP server with Git repository at: {GIT_REPO_PATH}")
+        print("Starting STDIO MCP server")
         mcp.run(transport='stdio')
